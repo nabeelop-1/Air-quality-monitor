@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>IoT Air Quality Monitor — Dark Pro+ App</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap');
+
+  :root {
+    --bg: radial-gradient(circle at top, #050709, #0b0e13, #10151d);
+    --card-bg: rgba(25, 30, 40, 0.85);
+    --accent: #fff;
+    --muted: #9aa6b2;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: var(--bg);
+    color: var(--accent);
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    animation: fadeIn 1s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  header {
+    text-align: center;
+    padding: 28px 20px 10px;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  .dashboard {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 40px 20px 100px;
+    max-width: 1000px;
+    margin: auto;
+  }
+
+  .card {
+    width: 280px;
+    padding: 22px;
+    border-radius: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: all .3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover:not(.disabled) {
+    transform: translateY(-5px);
+    background: rgba(35, 45, 55, 0.85);
+  }
+
+  .card.disabled {
+    opacity: 0.6;
+    filter: grayscale(0.8);
+    cursor: not-allowed;
+  }
+
+  .icon { font-size: 3rem; margin-bottom: 8px; }
+  .value { font-size: 2.2rem; font-weight: 700; }
+  .label { color: var(--muted); margin-top: 6px; font-weight: 600; }
+
+  .status.good { color: #00e676; }
+  .status.moderate { color: #ffc107; }
+  .status.poor { color: #ff5252; }
+
+  /* Bottom Sensor Detail Panel */
+  .bottomPanelWrap {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: center;
+    padding: 14px;
+    z-index: 10;
+  }
+
+  .bottomPanel {
+    width: 95%;
+    max-width: 1100px;
+    background: rgba(15,15,20,0.95);
+    border-radius: 14px 14px 0 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.8);
+    display: flex;
+    gap: 20px;
+    padding: 18px;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: transform .55s ease, opacity .4s ease;
+  }
+
+  .bottomPanel.active {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .dragHandle {
+    width: 60px;
+    height: 5px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    margin: 0 auto 10px;
+  }
+
+  .panelLeft { width: 110px; text-align: center; }
+  .panelLeft .icon { font-size: 4rem; }
+  .panelRight { flex: 1; }
+  .panelTitle { font-size: 1.25rem; font-weight: 700; }
+  .panelDesc { color: var(--muted); margin: 6px 0 12px; line-height: 1.4; }
+
+  .chartBox {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+
+  canvas { width: 100% !important; height: 220px !important; }
+
+  .closeBtn {
+    background: rgba(255,255,255,0.08);
+    border: 0;
+    color: var(--accent);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 8px;
+    float: right;
+  }
+
+  .closeBtn:hover { background: rgba(255,255,255,0.18); }
+
+  /* Floating FAB */
+  .fab {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #1976d2, #42a5f5);
+    box-shadow: 0 6px 25px rgba(0,0,0,0.5);
+    color: #fff;
+    font-size: 1.8rem;
+    border: none;
+    cursor: pointer;
+    z-index: 15;
+    transition: all 0.25s ease;
+  }
+
+  .fab:hover {
+    transform: scale(1.08);
+  }
+
+  /* Drawer Menu */
+  .drawerMenu {
+    position: fixed;
+    bottom: 85px;
+    right: 22px;
+    background: rgba(25,25,30,0.95);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 14;
+  }
+
+  .drawerMenu.show { display: flex; animation: slideUp 0.3s ease; }
+
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .drawerMenu button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.2s ease;
+  }
+
+  .drawerMenu button:hover { background: rgba(255,255,255,0.08); }
+
+  /* Mini windows (About / Settings) */
+  .popup {
+    position: fixed;
+    bottom: -100%;
+    left: 0; right: 0;
+    background: rgba(15,15,20,0.97);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-top: 1px solid var(--border);
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    transition: bottom 0.5s ease;
+    z-index: 30;
+  }
+
+  .popup.active { bottom: 0; }
+
+  .popup h2 { margin-top: 0; }
+  .popup p { color: var(--muted); }
+
+  .popup button {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    padding: 8px 16px;
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  @media (max-width: 760px) {
+    .dashboard { flex-direction: column; align-items: center; }
+    .card { width: 90%; }
+  }
+</style>
+</head>
+
+<body>
+<header><h1>IoT Air Quality Monitor</h1></header>
+
+<div class="dashboard">
+  <div class="card" data-field="1"><div class="icon">🌡️</div><div class="value" id="val-temp">--</div><div class="label">Temperature (°C)</div></div>
+  <div class="card" data-field="2"><div class="icon">💧</div><div class="value" id="val-humid">--</div><div class="label">Humidity (%)</div></div>
+  <div class="card" data-field="3"><div class="icon">💨</div><div class="value" id="val-aq">--</div><div class="label">Air Quality (ppm)</div></div>
+</div>
+
+<!-- Bottom Panel -->
+<div class="bottomPanelWrap">
+  <div id="bottomPanel" class="bottomPanel">
+    <div class="dragHandle"></div>
+    <div class="panelLeft"><div class="icon" id="panelIcon">🌡️</div></div>
+    <div class="panelRight">
+      <div class="panelTitle" id="panelTitle">Sensor</div>
+      <div class="panelDesc" id="panelDesc">Details appear here.</div>
+      <div class="chartBox"><canvas id="panelChart"></canvas></div>
+      <button class="closeBtn" id="closeBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB & Drawer -->
+<button class="fab" id="fab">☰</button>
+<div class="drawerMenu" id="drawerMenu">
+  <button id="settingsBtn">⚙️ Settings</button>
+  <button id="aboutBtn">ℹ️ About</button>
+  <button id="thingspeakBtn">📊 ThingSpeak</button>
+</div>
+
+<!-- Mini Popups -->
+<div class="popup" id="settingsPopup">
+  <h2>⚙️ Settings</h2>
+  <p>Future feature: Customize update rate, thresholds, and theme colors.</p>
+  <button onclick="closePopup('settingsPopup')">Close</button>
+</div>
+
+<div class="popup" id="aboutPopup">
+  <h2>ℹ️ About</h2>
+  <p>This IoT Air Quality Monitor uses a NodeMCU with DHT11 and MQ-135 sensors to send data to ThingSpeak.</p>
+  <button onclick="closePopup('aboutPopup')">Close</button>
+</div>
+
+<script>
+const channelID = 3112714;
+const bottomPanel = document.getElementById('bottomPanel');
+let currentChart = null;
+
+async function loadLatest() {
+  const fields = [1, 2, 3];
+  const data = await Promise.all(fields.map(async f => {
+    const r = await fetch(`https://api.thingspeak.com/channels/${channelID}/fields/${f}/last.txt`);
+    const t = await r.text(); return parseFloat(t);
+  }));
+  const [t, h, a] = data;
+  document.getElementById('val-temp').textContent = t + '°C';
+  document.getElementById('val-humid').textContent = h + '%';
+  document.getElementById('val-aq').textContent = a + 'ppm';
+}
+loadLatest(); setInterval(loadLatest, 20000);
+
+document.querySelectorAll('.card').forEach(c => {
+  c.addEventListener('click', async () => {
+    const f = c.dataset.field;
+    document.getElementById('panelIcon').textContent = c.querySelector('.icon').textContent;
+    document.getElementById('panelTitle').textContent = c.querySelector('.label').textContent;
+    document.getElementById('panelDesc').textContent = `Real-time data for ${c.querySelector('.label').textContent}.`;
+    bottomPanel.classList.add('active');
+    await renderChart(f);
+  });
+});
+
+async function renderChart(f) {
+  const ctx = document.getElementById('panelChart').getContext('2d');
+  const r = await fetch(`https://api.thingspeak.com/channels/${channelID}/fields/${f}.json?results=24`);
+  const d = await r.json();
+  const feeds = d.feeds || [];
+  const labels = feeds.map(x => new Date(x.created_at).toLocaleTimeString());
+  const vals = feeds.map(x => parseFloat(x[`field${f}`]));
+  if (currentChart) currentChart.destroy();
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data: vals, borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)', tension: 0.3 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#999' } }, y: { ticks: { color: '#999' } } } }
+  });
+}
+
+document.getElementById('closeBtn').onclick = () => bottomPanel.classList.remove('active');
+
+const fab = document.getElementById('fab');
+const drawer = document.getElementById('drawerMenu');
+fab.onclick = () => drawer.classList.toggle('show');
+document.getElementById('thingspeakBtn').onclick = () => window.open(`https://thingspeak.com/channels/${channelID}`, '_blank');
+
+document.getElementById('settingsBtn').onclick = () => openPopup('settingsPopup');
+document.getElementById('aboutBtn').onclick = () => openPopup('aboutPopup');
+
+function openPopup(id){ document.getElementById(id).classList.add('active'); }
+function closePopup(id){ document.getElementById(id).classList.remove('active'); }
+</script>
+</body>
+</html>
