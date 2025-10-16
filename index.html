@@ -13,24 +13,21 @@
       --card-bg: rgba(255, 255, 255, 0.12);
       --bg-gradient: radial-gradient(circle at top left, #1a1a1a, #000);
     }
-
     body.light {
       --glass-bg: rgba(255, 255, 255, 0.6);
-      --text-color: #222;
+      --text-color: #111;
       --accent: #0077ff;
       --card-bg: rgba(255, 255, 255, 0.4);
       --bg-gradient: linear-gradient(135deg, #ece9e6, #ffffff);
     }
-
     body {
       margin: 0;
       font-family: "Poppins", sans-serif;
       color: var(--text-color);
       background: var(--bg-gradient);
       overflow-x: hidden;
-      transition: background 0.8s ease, color 0.8s ease;
+      transition: background 0.6s ease, color 0.6s ease;
     }
-
     header {
       text-align: center;
       padding: 2rem 1rem;
@@ -39,12 +36,10 @@
       color: var(--accent);
       animation: fadeDown 1s ease;
     }
-
     @keyframes fadeDown {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     .dashboard {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -52,7 +47,6 @@
       padding: 2rem;
       justify-items: center;
     }
-
     .card {
       backdrop-filter: blur(15px);
       background: var(--card-bg);
@@ -65,40 +59,34 @@
       transition: all 0.4s ease;
       animation: fadeInUp 0.8s ease forwards;
     }
-
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     .card:hover {
       transform: translateY(-6px) scale(1.03);
       box-shadow: 0 6px 40px rgba(0, 0, 0, 0.4);
     }
-
     .card h3 {
       margin: 0.5rem 0;
       font-weight: 600;
     }
-
     .card span {
       font-size: 2rem;
       font-weight: bold;
       color: var(--accent);
     }
-
     .chart-container {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.7s ease, opacity 0.7s ease;
+      height: 0;
       opacity: 0;
+      overflow: hidden;
+      transition: all 0.6s ease;
     }
-
     .chart-container.active {
-      max-height: 300px;
+      height: 250px;
       opacity: 1;
+      margin-top: 1rem;
     }
-
     .fab {
       position: fixed;
       bottom: 25px;
@@ -116,11 +104,9 @@
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
       transition: transform 0.4s ease, background 0.4s ease;
     }
-
     .fab:hover {
       transform: rotate(90deg) scale(1.1);
     }
-
     .drawer {
       position: fixed;
       bottom: -220px;
@@ -133,11 +119,9 @@
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
       transition: bottom 0.6s ease;
     }
-
     .drawer.active {
       bottom: 100px;
     }
-
     .drawer button {
       display: block;
       width: 100%;
@@ -151,32 +135,17 @@
       cursor: pointer;
       transition: background 0.3s, transform 0.2s;
     }
-
     .drawer button:hover {
       background: rgba(255, 255, 255, 0.2);
       transform: translateX(5px);
     }
-
-    /* Smooth theme animation */
-    .theme-transition {
-      transition: all 0.6s ease-in-out;
-      animation: fadeGlow 0.8s ease;
-    }
-
-    @keyframes fadeGlow {
-      from { opacity: 0.6; filter: brightness(0.8); }
-      to { opacity: 1; filter: brightness(1); }
-    }
-
     .theme-icon {
       display: inline-block;
       transition: transform 0.5s ease;
     }
-
     .theme-icon.spin {
       transform: rotate(360deg);
     }
-
     @media (max-width: 768px) {
       .dashboard {
         grid-template-columns: 1fr;
@@ -189,6 +158,7 @@
 </head>
 <body>
   <header>🌐 Smart Air Quality Dashboard</header>
+
   <div class="dashboard">
     <div class="card" data-type="temperature">
       <h3>🌡️ Temperature</h3>
@@ -201,20 +171,19 @@
       <div class="chart-container"><canvas id="humChart"></canvas></div>
     </div>
     <div class="card" data-type="air">
-      <h3>🌫️ Air Quality (MQ-135)</h3>
+      <h3>🌫️ Air Quality</h3>
       <span id="airValue">45 AQI</span>
       <div class="chart-container"><canvas id="airChart"></canvas></div>
     </div>
   </div>
 
   <div class="fab" id="menuBtn">⚙️</div>
-
   <div class="drawer" id="drawerMenu">
     <button id="themeToggle">
       <span class="theme-icon">🌗</span> Toggle Theme
     </button>
     <button onclick="window.open('https://thingspeak.com', '_blank')">📡 ThingSpeak</button>
-    <button onclick="alert('Coming Soon!')">📱 App Settings</button>
+    <button onclick="alert('Coming soon!')">📱 App Settings</button>
   </div>
 
   <script>
@@ -252,6 +221,7 @@
         const openCard = document.querySelector(".chart-container.active");
         if (openCard && openCard !== chartContainer) openCard.classList.remove("active");
         chartContainer.classList.toggle("active");
+
         if (chartContainer.classList.contains("active")) {
           chartContainer.scrollIntoView({ behavior: "smooth", block: "center" });
           if (!charts[type]) {
@@ -270,18 +240,14 @@
       if (!fab.contains(e.target) && !drawer.contains(e.target)) drawer.classList.remove("active");
     });
 
-    // Animated theme toggle
     const themeBtn = document.getElementById("themeToggle");
     const icon = themeBtn.querySelector(".theme-icon");
-
     themeBtn.addEventListener("click", () => {
-      document.body.classList.add("theme-transition");
       icon.classList.add("spin");
       setTimeout(() => {
         document.body.classList.toggle("light");
         icon.classList.remove("spin");
-        document.body.classList.remove("theme-transition");
-      }, 600);
+      }, 500);
     });
   </script>
 </body>
