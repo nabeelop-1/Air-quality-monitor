@@ -1,358 +1,288 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>IoT Air Quality Monitor — Dark Pro+ App</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro Glass Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --text-color: #fff;
+      --accent: #00bcd4;
+      --card-bg: rgba(255, 255, 255, 0.12);
+      --bg-gradient: radial-gradient(circle at top left, #1a1a1a, #000);
+    }
 
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap');
+    body.light {
+      --glass-bg: rgba(255, 255, 255, 0.6);
+      --text-color: #222;
+      --accent: #0077ff;
+      --card-bg: rgba(255, 255, 255, 0.4);
+      --bg-gradient: linear-gradient(135deg, #ece9e6, #ffffff);
+    }
 
-  :root {
-    --bg: radial-gradient(circle at top, #050709, #0b0e13, #10151d);
-    --card-bg: rgba(25, 30, 40, 0.85);
-    --accent: #fff;
-    --muted: #9aa6b2;
-    --border: rgba(255,255,255,0.08);
-  }
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      color: var(--text-color);
+      background: var(--bg-gradient);
+      overflow-x: hidden;
+      transition: background 0.8s ease, color 0.8s ease;
+    }
 
-  * { box-sizing: border-box; }
+    header {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      animation: fadeDown 1s ease;
+    }
 
-  body {
-    margin: 0;
-    font-family: "Poppins", sans-serif;
-    background: var(--bg);
-    color: var(--accent);
-    overflow-x: hidden;
-    overscroll-behavior: none;
-    animation: fadeIn 1s ease both;
-  }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      padding: 2rem;
+      justify-items: center;
+    }
 
-  header {
-    text-align: center;
-    padding: 28px 20px 10px;
-  }
+    .card {
+      backdrop-filter: blur(15px);
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 1.5rem;
+      width: 280px;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+      transition: all 0.4s ease;
+      animation: fadeInUp 0.8s ease forwards;
+    }
 
-  h1 {
-    font-weight: 700;
-    font-size: 1.6rem;
-    letter-spacing: 0.5px;
-  }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-  .dashboard {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
-    padding: 40px 20px 100px;
-    max-width: 1000px;
-    margin: auto;
-  }
+    .card:hover {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: 0 6px 40px rgba(0, 0, 0, 0.4);
+    }
 
-  .card {
-    width: 280px;
-    padding: 22px;
-    border-radius: 16px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    text-align: center;
-    transition: all .3s ease;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-  }
+    .card h3 {
+      margin: 0.5rem 0;
+      font-weight: 600;
+    }
 
-  .card:hover:not(.disabled) {
-    transform: translateY(-5px);
-    background: rgba(35, 45, 55, 0.85);
-  }
+    .card span {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
 
-  .card.disabled {
-    opacity: 0.6;
-    filter: grayscale(0.8);
-    cursor: not-allowed;
-  }
+    .chart-container {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.7s ease, opacity 0.7s ease;
+      opacity: 0;
+    }
 
-  .icon { font-size: 3rem; margin-bottom: 8px; }
-  .value { font-size: 2.2rem; font-weight: 700; }
-  .label { color: var(--muted); margin-top: 6px; font-weight: 600; }
+    .chart-container.active {
+      max-height: 300px;
+      opacity: 1;
+    }
 
-  .status.good { color: #00e676; }
-  .status.moderate { color: #ffc107; }
-  .status.poor { color: #ff5252; }
+    .fab {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: transform 0.4s ease, background 0.4s ease;
+    }
 
-  /* Bottom Sensor Detail Panel */
-  .bottomPanelWrap {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    display: flex;
-    justify-content: center;
-    padding: 14px;
-    z-index: 10;
-  }
+    .fab:hover {
+      transform: rotate(90deg) scale(1.1);
+    }
 
-  .bottomPanel {
-    width: 95%;
-    max-width: 1100px;
-    background: rgba(15,15,20,0.95);
-    border-radius: 14px 14px 0 0;
-    border: 1px solid var(--border);
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.8);
-    display: flex;
-    gap: 20px;
-    padding: 18px;
-    opacity: 0;
-    transform: translateY(100%);
-    transition: transform .55s ease, opacity .4s ease;
-  }
+    .drawer {
+      position: fixed;
+      bottom: -220px;
+      right: 25px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      width: 200px;
+      padding: 1rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      transition: bottom 0.6s ease;
+    }
 
-  .bottomPanel.active {
-    transform: translateY(0);
-    opacity: 1;
-  }
+    .drawer.active {
+      bottom: 100px;
+    }
 
-  .dragHandle {
-    width: 60px;
-    height: 5px;
-    background: rgba(255,255,255,0.25);
-    border-radius: 10px;
-    margin: 0 auto 10px;
-  }
+    .drawer button {
+      display: block;
+      width: 100%;
+      background: none;
+      color: var(--text-color);
+      border: none;
+      padding: 0.8rem;
+      text-align: left;
+      border-radius: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
 
-  .panelLeft { width: 110px; text-align: center; }
-  .panelLeft .icon { font-size: 4rem; }
-  .panelRight { flex: 1; }
-  .panelTitle { font-size: 1.25rem; font-weight: 700; }
-  .panelDesc { color: var(--muted); margin: 6px 0 12px; line-height: 1.4; }
+    .drawer button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateX(5px);
+    }
 
-  .chartBox {
-    width: 100%;
-    background: rgba(255,255,255,0.05);
-    padding: 10px;
-    border-radius: 10px;
-    margin-top: 10px;
-  }
+    /* Smooth theme animation */
+    .theme-transition {
+      transition: all 0.6s ease-in-out;
+      animation: fadeGlow 0.8s ease;
+    }
 
-  canvas { width: 100% !important; height: 220px !important; }
+    @keyframes fadeGlow {
+      from { opacity: 0.6; filter: brightness(0.8); }
+      to { opacity: 1; filter: brightness(1); }
+    }
 
-  .closeBtn {
-    background: rgba(255,255,255,0.08);
-    border: 0;
-    color: var(--accent);
-    font-weight: 700;
-    cursor: pointer;
-    padding: 6px 14px;
-    border-radius: 8px;
-    float: right;
-  }
+    .theme-icon {
+      display: inline-block;
+      transition: transform 0.5s ease;
+    }
 
-  .closeBtn:hover { background: rgba(255,255,255,0.18); }
+    .theme-icon.spin {
+      transform: rotate(360deg);
+    }
 
-  /* Floating FAB */
-  .fab {
-    position: fixed;
-    bottom: 22px;
-    right: 22px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #1976d2, #42a5f5);
-    box-shadow: 0 6px 25px rgba(0,0,0,0.5);
-    color: #fff;
-    font-size: 1.8rem;
-    border: none;
-    cursor: pointer;
-    z-index: 15;
-    transition: all 0.25s ease;
-  }
-
-  .fab:hover {
-    transform: scale(1.08);
-  }
-
-  /* Drawer Menu */
-  .drawerMenu {
-    position: fixed;
-    bottom: 85px;
-    right: 22px;
-    background: rgba(25,25,30,0.95);
-    border: 1px solid var(--border);
-    border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0,0,0,0.6);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 14;
-  }
-
-  .drawerMenu.show { display: flex; animation: slideUp 0.3s ease; }
-
-  @keyframes slideUp {
-    from { transform: translateY(40px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  .drawerMenu button {
-    background: transparent;
-    border: none;
-    color: #fff;
-    padding: 12px 24px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    transition: background 0.2s ease;
-  }
-
-  .drawerMenu button:hover { background: rgba(255,255,255,0.08); }
-
-  /* Mini windows (About / Settings) */
-  .popup {
-    position: fixed;
-    bottom: -100%;
-    left: 0; right: 0;
-    background: rgba(15,15,20,0.97);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    border-top: 1px solid var(--border);
-    padding: 20px;
-    color: #fff;
-    text-align: center;
-    transition: bottom 0.5s ease;
-    z-index: 30;
-  }
-
-  .popup.active { bottom: 0; }
-
-  .popup h2 { margin-top: 0; }
-  .popup p { color: var(--muted); }
-
-  .popup button {
-    background: rgba(255,255,255,0.08);
-    border: none;
-    padding: 8px 16px;
-    color: white;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-  }
-
-  @media (max-width: 760px) {
-    .dashboard { flex-direction: column; align-items: center; }
-    .card { width: 90%; }
-  }
-</style>
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      .card {
+        width: 85%;
+      }
+    }
+  </style>
 </head>
-
 <body>
-<header><h1>IoT Air Quality Monitor</h1></header>
-
-<div class="dashboard">
-  <div class="card" data-field="1"><div class="icon">🌡️</div><div class="value" id="val-temp">--</div><div class="label">Temperature (°C)</div></div>
-  <div class="card" data-field="2"><div class="icon">💧</div><div class="value" id="val-humid">--</div><div class="label">Humidity (%)</div></div>
-  <div class="card" data-field="3"><div class="icon">💨</div><div class="value" id="val-aq">--</div><div class="label">Air Quality (ppm)</div></div>
-</div>
-
-<!-- Bottom Panel -->
-<div class="bottomPanelWrap">
-  <div id="bottomPanel" class="bottomPanel">
-    <div class="dragHandle"></div>
-    <div class="panelLeft"><div class="icon" id="panelIcon">🌡️</div></div>
-    <div class="panelRight">
-      <div class="panelTitle" id="panelTitle">Sensor</div>
-      <div class="panelDesc" id="panelDesc">Details appear here.</div>
-      <div class="chartBox"><canvas id="panelChart"></canvas></div>
-      <button class="closeBtn" id="closeBtn">Close</button>
+  <header>🌐 Smart Air Quality Dashboard</header>
+  <div class="dashboard">
+    <div class="card" data-type="temperature">
+      <h3>🌡️ Temperature</h3>
+      <span id="tempValue">28°C</span>
+      <div class="chart-container"><canvas id="tempChart"></canvas></div>
+    </div>
+    <div class="card" data-type="humidity">
+      <h3>💧 Humidity</h3>
+      <span id="humValue">65%</span>
+      <div class="chart-container"><canvas id="humChart"></canvas></div>
+    </div>
+    <div class="card" data-type="air">
+      <h3>🌫️ Air Quality (MQ-135)</h3>
+      <span id="airValue">45 AQI</span>
+      <div class="chart-container"><canvas id="airChart"></canvas></div>
     </div>
   </div>
-</div>
 
-<!-- FAB & Drawer -->
-<button class="fab" id="fab">☰</button>
-<div class="drawerMenu" id="drawerMenu">
-  <button id="settingsBtn">⚙️ Settings</button>
-  <button id="aboutBtn">ℹ️ About</button>
-  <button id="thingspeakBtn">📊 ThingSpeak</button>
-</div>
+  <div class="fab" id="menuBtn">⚙️</div>
 
-<!-- Mini Popups -->
-<div class="popup" id="settingsPopup">
-  <h2>⚙️ Settings</h2>
-  <p>Future feature: Customize update rate, thresholds, and theme colors.</p>
-  <button onclick="closePopup('settingsPopup')">Close</button>
-</div>
+  <div class="drawer" id="drawerMenu">
+    <button id="themeToggle">
+      <span class="theme-icon">🌗</span> Toggle Theme
+    </button>
+    <button onclick="window.open('https://thingspeak.com', '_blank')">📡 ThingSpeak</button>
+    <button onclick="alert('Coming Soon!')">📱 App Settings</button>
+  </div>
 
-<div class="popup" id="aboutPopup">
-  <h2>ℹ️ About</h2>
-  <p>This IoT Air Quality Monitor uses a NodeMCU with DHT11 and MQ-135 sensors to send data to ThingSpeak.</p>
-  <button onclick="closePopup('aboutPopup')">Close</button>
-</div>
+  <script>
+    const cards = document.querySelectorAll(".card");
+    const charts = {};
 
-<script>
-const channelID = 3112714;
-const bottomPanel = document.getElementById('bottomPanel');
-let currentChart = null;
+    const createChart = (id, label, color) => {
+      const ctx = document.getElementById(id);
+      return new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: ["1", "2", "3", "4", "5", "6"],
+          datasets: [{
+            label: label,
+            data: Array.from({ length: 6 }, () => Math.floor(Math.random() * 50 + 20)),
+            borderColor: color,
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { display: false }, y: { display: false } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    };
 
-async function loadLatest() {
-  const fields = [1, 2, 3];
-  const data = await Promise.all(fields.map(async f => {
-    const r = await fetch(`https://api.thingspeak.com/channels/${channelID}/fields/${f}/last.txt`);
-    const t = await r.text(); return parseFloat(t);
-  }));
-  const [t, h, a] = data;
-  document.getElementById('val-temp').textContent = t + '°C';
-  document.getElementById('val-humid').textContent = h + '%';
-  document.getElementById('val-aq').textContent = a + 'ppm';
-}
-loadLatest(); setInterval(loadLatest, 20000);
+    cards.forEach(card => {
+      const chartContainer = card.querySelector(".chart-container");
+      const type = card.dataset.type;
+      card.addEventListener("click", () => {
+        const openCard = document.querySelector(".chart-container.active");
+        if (openCard && openCard !== chartContainer) openCard.classList.remove("active");
+        chartContainer.classList.toggle("active");
+        if (chartContainer.classList.contains("active")) {
+          chartContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (!charts[type]) {
+            if (type === "temperature") charts[type] = createChart("tempChart", "Temperature (°C)", "#ff5722");
+            if (type === "humidity") charts[type] = createChart("humChart", "Humidity (%)", "#03a9f4");
+            if (type === "air") charts[type] = createChart("airChart", "Air Quality (AQI)", "#8bc34a");
+          }
+        }
+      });
+    });
 
-document.querySelectorAll('.card').forEach(c => {
-  c.addEventListener('click', async () => {
-    const f = c.dataset.field;
-    document.getElementById('panelIcon').textContent = c.querySelector('.icon').textContent;
-    document.getElementById('panelTitle').textContent = c.querySelector('.label').textContent;
-    document.getElementById('panelDesc').textContent = `Real-time data for ${c.querySelector('.label').textContent}.`;
-    bottomPanel.classList.add('active');
-    await renderChart(f);
-  });
-});
+    const fab = document.getElementById("menuBtn");
+    const drawer = document.getElementById("drawerMenu");
+    fab.addEventListener("click", () => drawer.classList.toggle("active"));
+    document.addEventListener("click", e => {
+      if (!fab.contains(e.target) && !drawer.contains(e.target)) drawer.classList.remove("active");
+    });
 
-async function renderChart(f) {
-  const ctx = document.getElementById('panelChart').getContext('2d');
-  const r = await fetch(`https://api.thingspeak.com/channels/${channelID}/fields/${f}.json?results=24`);
-  const d = await r.json();
-  const feeds = d.feeds || [];
-  const labels = feeds.map(x => new Date(x.created_at).toLocaleTimeString());
-  const vals = feeds.map(x => parseFloat(x[`field${f}`]));
-  if (currentChart) currentChart.destroy();
-  currentChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ data: vals, borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)', tension: 0.3 }] },
-    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#999' } }, y: { ticks: { color: '#999' } } } }
-  });
-}
+    // Animated theme toggle
+    const themeBtn = document.getElementById("themeToggle");
+    const icon = themeBtn.querySelector(".theme-icon");
 
-document.getElementById('closeBtn').onclick = () => bottomPanel.classList.remove('active');
-
-const fab = document.getElementById('fab');
-const drawer = document.getElementById('drawerMenu');
-fab.onclick = () => drawer.classList.toggle('show');
-document.getElementById('thingspeakBtn').onclick = () => window.open(`https://thingspeak.com/channels/${channelID}`, '_blank');
-
-document.getElementById('settingsBtn').onclick = () => openPopup('settingsPopup');
-document.getElementById('aboutBtn').onclick = () => openPopup('aboutPopup');
-
-function openPopup(id){ document.getElementById(id).classList.add('active'); }
-function closePopup(id){ document.getElementById(id).classList.remove('active'); }
-</script>
+    themeBtn.addEventListener("click", () => {
+      document.body.classList.add("theme-transition");
+      icon.classList.add("spin");
+      setTimeout(() => {
+        document.body.classList.toggle("light");
+        icon.classList.remove("spin");
+        document.body.classList.remove("theme-transition");
+      }, 600);
+    });
+  </script>
 </body>
 </html>
